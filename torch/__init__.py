@@ -78,10 +78,12 @@ if sys.platform == 'win32':
         cuda_path_var = 'CUDA_PATH_V' + cuda_version_1
         default_path = os.path.join(pfiles_path, 'NVIDIA GPU Computing Toolkit', 'CUDA', 'v' + cuda_version)
         cuda_path = os.path.join(os.getenv(cuda_path_var, default_path), 'bin')
+        cuda_extras_path = os.path.join(os.getenv(cuda_path_var, default_path), 'extras', 'CUPTI', 'lib64')
     else:
         cuda_path = ''
+        cuda_extras_path = ''
 
-    dll_paths.extend(filter(os.path.exists, [nvtoolsext_dll_path, cuda_path]))
+    dll_paths.extend(filter(os.path.exists, [nvtoolsext_dll_path, cuda_path, cuda_extras_path]))
 
     kernel32 = ctypes.WinDLL('kernel32.dll', use_last_error=True)
     with_load_library_flags = hasattr(kernel32, 'AddDllDirectory')

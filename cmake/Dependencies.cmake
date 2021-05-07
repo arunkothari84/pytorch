@@ -1845,35 +1845,39 @@ if(USE_KINETO)
   if(NOT LIBKINETO_NOCUPTI)
     set(CUDA_SOURCE_DIR "${CUDA_TOOLKIT_ROOT_DIR}" CACHE STRING "")
     message(STATUS "  CUDA_SOURCE_DIR = ${CUDA_SOURCE_DIR}")
+    message(STATUS "  CUDA_INCLUDE_DIRS = ${CUDA_INCLUDE_DIRS}")
 
-    if(EXISTS ${CUDA_SOURCE_DIR}/extras/CUPTI/lib64/libcupti_static.a)
-      set(CUDA_cupti_LIBRARY "${CUDA_SOURCE_DIR}/extras/CUPTI/lib64/libcupti_static.a")
-    elseif(EXISTS ${CUDA_SOURCE_DIR}/lib64/libcupti_static.a)
-      set(CUDA_cupti_LIBRARY "${CUDA_SOURCE_DIR}/lib64/libcupti_static.a")
-    elseif(USE_CUPTI_SO)
-      if(EXISTS ${CUDA_SOURCE_DIR}/extras/CUPTI/lib64/libcupti.so)
-        set(CUDA_cupti_LIBRARY "${CUDA_SOURCE_DIR}/extras/CUPTI/lib64/libcupti.so")
-      elseif(EXISTS ${CUDA_SOURCE_DIR}/lib64/libcupti.so)
-        set(CUDA_cupti_LIBRARY "${CUDA_SOURCE_DIR}/lib64/libcupti.so")
+    find_path(CUPTI_INCLUDE_DIR cupti.h PATHS
+        ${CUDA_INCLUDE_DIRS}
+        ${CUDA_SOURCE_DIR}
+        ${CUDA_SOURCE_DIR}/extras/CUPTI/include
+        ${CUDA_SOURCE_DIR}/include)
+
+    if(NOT MSVC)
+      if(USE_CUPTI_SO)
+        set(CUPTI_LIB_NAME "libcupti.so")
+      else()
+        set(CUPTI_LIB_NAME "libcupti_static.a")
       endif()
+    else()
+      set(CUPTI_LIB_NAME "cupti.lib")
     endif()
 
-    if(EXISTS ${CUDA_SOURCE_DIR}/extras/CUPTI/include)
-      set(CUPTI_INCLUDE_DIR "${CUDA_SOURCE_DIR}/extras/CUPTI/include")
-    elseif(EXISTS ${CUDA_SOURCE_DIR}/include/cupti.h)
-      set(CUPTI_INCLUDE_DIR "${CUDA_SOURCE_DIR}/include")
-    endif()
+    find_library(CUPTI_LIBRARY_PATH ${CUPTI_LIB_NAME} PATHS
+        ${CUDA_SOURCE_DIR}
+        ${CUDA_SOURCE_DIR}/extras/CUPTI/lib64
+        ${CUDA_SOURCE_DIR}/lib64)
+
+    message(STATUS "  CUPTI_INCLUDE_DIR = ${CUPTI_INCLUDE_DIR}")
+    set(CUDA_cupti_LIBRARY ${CUPTI_LIBRARY_PATH})
+    message(STATUS "  CUDA_cupti_LIBRARY = ${CUDA_cupti_LIBRARY}")
 
     set(FOUND_CUPTI FALSE)
-    if((DEFINED CUPTI_INCLUDE_DIR) AND (DEFINED CUDA_cupti_LIBRARY))
-      if((CUDA_cupti_LIBRARY MATCHES "libcupti_static.a") OR ((CUDA_cupti_LIBRARY MATCHES "libcupti.so") AND (USE_CUPTI_SO)))
-        set(FOUND_CUPTI TRUE)
-      endif()
+    if((EXISTS ${CUPTI_INCLUDE_DIR}) AND (EXISTS ${CUDA_cupti_LIBRARY}))
+      set(FOUND_CUPTI TRUE)
     endif()
 
     if(FOUND_CUPTI)
-      message(STATUS "  CUDA_cupti_LIBRARY = ${CUDA_cupti_LIBRARY}")
-      message(STATUS "  CUPTI_INCLUDE_DIR = ${CUPTI_INCLUDE_DIR}")
       if(NOT TARGET kineto)
         add_subdirectory("${KINETO_SOURCE_DIR}")
       endif()
